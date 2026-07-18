@@ -162,6 +162,7 @@ class Aplicacion(QMainWindow):
                 self.limpiar()
                 self.estado_botones(False)
                 return 
+            self.txtID.setText(str(resultado[0]))
             self.txtPaterno.setText(resultado[1])
             self.txtMaterno.setText(resultado[2])
             self.txtNombre.setText(resultado[3])
@@ -231,27 +232,37 @@ class Aplicacion(QMainWindow):
     
     def eliminar(self):
         try:
-          
-          id = self.txtID.text()
-          ruta = "SELECT ruta FROM usuarios WHERE idusuario = {}".format(int(id))
-          if self.cur.execute(ruta):
-              resultado = self.cur.fetchone()
-              if resultado:
-                  ruta_archivo = resultado[0]
-                  if os.path.exists(ruta_archivo):
-                      os.remove(ruta_archivo)
-                      print("Archivo eliminado:", ruta_archivo)
-                  else:
-                      print("El archivo no existe:", ruta_archivo)
-          eliminacion = "DELETE FROM usuarios WHERE idusuario = {}".format(id)
-          #las comillas simples son para que no se confunda con el formato de la cadena
-          self.cur.execute(eliminacion)
-          self.c.commit()
-          QMessageBox.information(self,"Atencion","Eliminacion exitosa")
-          self.limpiar()
-          self.mostrar_datos()
+            respuesta = QMessageBox.question(self, "Atencion", 
+                                             "¿Estas seguro de eliminar el registro?", 
+                                             QMessageBox.Yes | QMessageBox.No)
+            if respuesta == QMessageBox.Yes:
+                texto_id = self.txtID.text().strip()
+                if not texto_id.isdigit():
+                    QMessageBox.warning(self, "Atencion", "Ingresa un ID válido")
+                    return
+                id = int(texto_id)
+
+                self.cur.execute("SELECT ruta FROM usuarios WHERE idusuario = %s", (id,))
+                resultado = self.cur.fetchone()
+
+                if resultado:
+                    ruta_archivo = resultado[0]
+                    if ruta_archivo and os.path.exists(ruta_archivo):
+                        os.remove(ruta_archivo)
+                        print("Archivo eliminado:", ruta_archivo)
+                    else:
+                        print("El archivo no existe:", ruta_archivo)
+
+                self.cur.execute("DELETE FROM usuarios WHERE idusuario = %s", (id,))
+                self.c.commit()
+
+                QMessageBox.information(self, "Atencion", "Eliminacion exitosa")
+                self.limpiar()
+                self.mostrar_datos()
+            elif respuesta == QMessageBox.No:
+                QMessageBox.information(self, "Atencion", "Eliminacion cancelada")
         except Exception as error:
-            QMessageBox.warning(self,"Error",str(error))
+            QMessageBox.warning(self, "Error", str(error))
 
     def limpiar(self):
         self.txtID.setEnabled(True)
@@ -332,8 +343,6 @@ class Aplicacion(QMainWindow):
 
             self.tabla.resizeColumnsToContents()
 
-            
-        
             
         except Exception as error:
             QMessageBox.warning(self,"Error",str(error))
