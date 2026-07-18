@@ -1,17 +1,18 @@
-import sys, pandas, pymysql, qrcode, re
+import sys, pandas, pymysql, qrcode, re, os
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.uic import *
 
+
 #Class 
-class Prototipo(QMainWindow):
+class Aplicacion(QMainWindow):
 
     def __init__(self):
         #Constructor de la clase 
         super().__init__()
         #Mandar a llamar nuestra interfaz
-        loadUi(r"/Users/esteban/Documents/Prototipo/Interfaz.ui",self)
+        loadUi(r"/Users/esteban/Documents/Aplicacion/Interfaz.ui",self)
         self.btnRegistrar.clicked.connect(self.registrar)
         self.btnActualizar.clicked.connect(self.actualizar)
         self.btnEliminar.clicked.connect(self.eliminar)
@@ -51,7 +52,7 @@ class Prototipo(QMainWindow):
             self.c = pymysql.connect(host="localhost",
                                      user="root",
                                      password="12345678",
-                                     database="institucion")
+                                     database="aplicacion")
             self.cur = self.c.cursor()
             QMessageBox.information(self,"Atencion","Conexion hecha con exito")
 
@@ -70,8 +71,9 @@ class Prototipo(QMainWindow):
             correo = self. txtCorreo.text().lower()
             celular = self.txtCelular.text()
             rol = self.cbRol.currentText()
-            curp = self.txtCurp.text(). upper()
+            curp = self.txtCurp.text().upper()
             qr = rol + "-" + curp
+            ruta = f"/Users/esteban/Documents/Aplicacion/QRS/{rol}/{rol}-{curp}.png"
 
         #Validar que todas las variables contengan informacion
             if len(paterno) == 0:
@@ -109,9 +111,9 @@ class Prototipo(QMainWindow):
                 return
             
             registro = '''
-            INSERT INTO usuarios (paterno, materno, nombre, correo, celular, rol, curp, qr)
-            VALUES ('{}','{}','{}','{}','{}','{}','{}','{}')
-            '''.format(paterno, materno, nombre, correo, celular, rol, curp, qr)
+            INSERT INTO usuarios (paterno, materno, nombre, correo, celular, rol, curp, qr, ruta)
+            VALUES ('{}','{}','{}','{}','{}','{}','{}','{}','{}')
+            '''.format(paterno, materno, nombre, correo, celular, rol, curp, qr, ruta)
 
             self.cur.execute(registro)
             self.c.commit()
@@ -129,9 +131,30 @@ class Prototipo(QMainWindow):
 
     def buscar(self):
         try:
-            id = int(self.txtID.text())
-            consulta = "SELECT * FROM usuarios WHERE idusuario = {}".format(id) 
-            self.cur.execute(consulta)
+
+            opcion = str(self.BusquedaBox.currentText())
+
+            if opcion == "ID":
+                texto_id = self.txtID.text().strip()
+                if not texto_id.isdigit():
+                    QMessageBox.warning(self, "Atencion", "Ingresa un ID válido")
+                    return
+                id = int(texto_id)
+                consulta = "SELECT * FROM usuarios WHERE idusuario = %s" #Evitar inyeccion de sql
+                self.cur.execute(consulta, (id,))
+
+            elif opcion == "CURP":
+                curp = self.txtCurp.text().upper().strip()
+                if not curp:
+                    QMessageBox.warning(self, "Atencion", "Ingresa un CURP válido")
+                    return
+                consulta = "SELECT * FROM usuarios WHERE curp = %s"
+                self.cur.execute(consulta, (curp,))
+
+            else:
+                QMessageBox.warning(self, "Atencion", "Selecciona una opcion de busqueda")
+                return
+            
             resultado = self.cur.fetchone()
             #Verificar que la consulta exista 
             if resultado is None:
@@ -153,14 +176,18 @@ class Prototipo(QMainWindow):
                 self.cbRol.setCurrentIndex(3)
             elif resultado[6] == "EXTERNO":
                 self.cbRol.setCurrentIndex(4)
+            elif resultado[6] == "OPERATIVO":
+                self.cbRol.setCurrentIndex(5)
             
             
             self.txtCurp.setText(resultado[7])
             self.txtQR.setText(resultado[8])
+            self.estado_botones(True)
+            self.txtID.setEnabled(False)
+
         except Exception as error:
             QMessageBox.warning(self,"Error",str(error))
-        self.estado_botones(True)
-        self.txtID.setEnabled(False)
+       
 
     def actualizar(self):
         try:
@@ -204,7 +231,18 @@ class Prototipo(QMainWindow):
     
     def eliminar(self):
         try:
-          id = int(self.txtID.text())
+          
+          id = self.txtID.text()
+          ruta = "SELECT ruta FROM usuarios WHERE idusuario = {}".format(int(id))
+          if self.cur.execute(ruta):
+              resultado = self.cur.fetchone()
+              if resultado:
+                  ruta_archivo = resultado[0]
+                  if os.path.exists(ruta_archivo):
+                      os.remove(ruta_archivo)
+                      print("Archivo eliminado:", ruta_archivo)
+                  else:
+                      print("El archivo no existe:", ruta_archivo)
           eliminacion = "DELETE FROM usuarios WHERE idusuario = {}".format(id)
           #las comillas simples son para que no se confunda con el formato de la cadena
           self.cur.execute(eliminacion)
@@ -309,7 +347,7 @@ class Prototipo(QMainWindow):
         qr.make()
         qrimg = qr.make_image(fill_color="#000000",
                               back_color="#ffffff").convert("RGB")
-        ruta = "/Users/esteban/Documents/Prototipo/QRS"
+        ruta = "/Users/esteban/Documents/Aplicacion/QRS"
         #Ruta dinamica para guardar el QR
         qrimg.save(f"{ruta}/{rol}/{codigo}.png")
         #Mensaje
@@ -342,7 +380,7 @@ class Prototipo(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    prototipo = Prototipo()
+    prototipo = Aplicacion()
     prototipo.show()
     app.exec()
 

@@ -360,6 +360,11 @@ QLineEdit:hover {
                <string>PROFESOR</string>
               </property>
              </item>
+             <item>
+              <property name="text">
+               <string>OPERATIVO</string>
+              </property>
+             </item>
             </widget>
            </item>
           </layout>
@@ -455,7 +460,7 @@ QLineEdit:hover {
 </string>
            </property>
            <property name="text">
-            <string>CANCELAR</string>
+            <string>LIMPIAR</string>
            </property>
           </widget>
          </item>
@@ -479,6 +484,25 @@ QLineEdit:hover {
         </layout>
        </item>
       </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QComboBox" name="BusquedaBox">
+      <item>
+       <property name="text">
+        <string>SELECCIONE UNA OPCION DE BUSQUEDA</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>ID</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>CURP</string>
+       </property>
+      </item>
      </widget>
     </item>
     <item>
@@ -543,6 +567,11 @@ QLineEdit:hover {
            <column>
             <property name="text">
              <string>QR</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>RUTA</string>
             </property>
            </column>
           </widget>
